@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫码录入日期-覆盖更新+历史汇总+导出Excel</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑",sans-serif;}
+        body{padding:20px;background:#f5f7fa;}
+        .container{max-width:500px;margin:0 auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 2px 10px #eee;}
+        h2{text-align:center;color:#333;margin-bottom:25px;}
+        .item{margin:20px 0;}
+        label{display:block;margin-bottom:8px;color:#666;}
+        input[type="date"]{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:16px;}
+        .btn{width:100%;padding:13px;background:#2d8cf0;color:#fff;border:none;border-radius:6px;font-size:16px;margin-top:10px;cursor:pointer;}
+        .btn2{background:#10b981;margin-top:15px;}
+        .btn:hover{background:#1b76d8;}
+        .btn2:hover{background:#059669;}
+        .latest{margin:25px 0;padding:15px;background:#f0f7ff;border-radius:6px;color:#2d8cf0;font-size:16px;}
+        .history-title{font-size:18px;margin:30px 0 15px;color:#333;border-left:4px solid #2d8cf0;padding-left:10px;}
+        .history-list{border:1px solid #eee;border-radius:6px;max-height:300px;overflow-y:auto;}
+        .history-item{padding:12px;border-bottom:1px solid #eee;font-size:15px;color:#555;}
+        .history-item:last-child{border-bottom:none;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>录入/更新日期</h2>
+
+        <div class="latest">
+            当前最新录入日期：<span id="latestDate">暂无记录</span>
+        </div>
+
+        <div class="item">
+            <label>选择新日期（提交覆盖最新，自动留存历史）</label>
+            <input type="date" id="dateInput">
+        </div>
+        <button class="btn" onclick="saveDate()">提交保存</button>
+        <button class="btn btn2" onclick="exportExcel()">导出历史记录到Excel</button>
+
+        <div class="history-title">历史录入汇总记录</div>
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+    <script>
+        let recordList = JSON.parse(localStorage.getItem('dateRecordList')) || [];
+        let latestDate = localStorage.getItem('latestDate') || '';
+
+        window.onload = function(){
+            renderLatest();
+            renderHistory();
+        }
+
+        function saveDate(){
+            let inputVal = document.getElementById('dateInput').value;
+            if(!inputVal){
+                alert('请选择日期');
+                return;
+            }
+            localStorage.setItem('latestDate', inputVal);
+            let nowTime = new Date().toLocaleString();
+            recordList.push({
+                录入日期: inputVal,
+                提交时间: nowTime
+            });
+            localStorage.setItem('dateRecordList', JSON.stringify(recordList));
+            latestDate = inputVal;
+            renderLatest();
+            renderHistory();
+            alert('保存成功！已更新最新日期，历史记录已留存');
+            document.getElementById('dateInput').value = '';
+        }
+
+        function renderLatest(){
+            document.getElementById('latestDate').innerText = latestDate || '暂无记录';
+        }
+
+        function renderHistory(){
+            let html = '';
+            for(let i = recordList.length - 1; i >= 0; i--){
+                let item = recordList[i];
+                html += `<div class="history-item">
+                    录入日期：${item.录入日期} &nbsp;&nbsp; 提交时间：${item.提交时间}
+                </div>`;
+            }
+            document.getElementById('historyList').innerHTML = html || '<div class="history-item">暂无历史记录</div>';
+        }
+
+        // 导出Excel
+        function exportExcel(){
+            if(recordList.length === 0){
+                alert('暂无历史记录可导出');
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(recordList);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "日期录入记录");
+            XLSX.writeFile(wb, "日期录入历史汇总.xlsx");
+        }
+    </script>
+</body>
+</html>
